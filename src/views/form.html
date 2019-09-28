@@ -1,0 +1,21 @@
+{{define "form"}}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Input Message</title>
+    </head>
+    <body>
+        <form method="post" action="/result">
+            <label>Name :</label>
+            <input type="text" placeholder="Type name here" name="name" required />
+            <br />
+
+            <label>Message :</label>
+            <input type="text" placeholder="Type message here" name="message" required />
+            <br />
+
+            <button type="submmit">Submit</button>
+        </form>
+    </body>
+</html>
+{{end}}

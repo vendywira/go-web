@@ -10,6 +10,8 @@ import (
 func main() {
 	http.HandleFunc("/", handlerIndex)
 	http.HandleFunc("/greeting", handlerGreeting)
+	http.HandleFunc("/form", handlerForm)
+	http.HandleFunc("/result", handlerResult)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("assets"))))
 
@@ -20,6 +22,43 @@ func main() {
 		fmt.Println(err.Error())
 	}
 }
+func handlerResult(writer http.ResponseWriter, request *http.Request) {
+	if request.Method == "POST" {
+		var filepath = path.Join("views", "message.html")
+		var temp = template.Must(template.New("result").ParseFiles(filepath))
+		if err := request.ParseForm(); err != nil {
+			http.Error(writer, "form must not be empty", http.StatusBadRequest)
+			return
+		}
+
+		name := request.Form.Get("name")
+		message := request.Form.Get("message")
+		var data = map[string]string{"name": name, "message": message}
+
+		if err := temp.Execute(writer, data); err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	http.Error(writer, "", http.StatusBadRequest)
+}
+
+func handlerForm(writer http.ResponseWriter, request *http.Request) {
+	if request.Method == "GET" {
+		var filepath = path.Join("views", "form.html")
+		var temp = template.Must(template.New("form").ParseFiles(filepath))
+
+		if err := temp.Execute(writer, nil); err != nil{
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+		}
+
+		return
+	}
+
+	http.Error(writer, "", http.StatusBadRequest)
+}
+
 func handlerGreeting(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Welcome!"))
 }

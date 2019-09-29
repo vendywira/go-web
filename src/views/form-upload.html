@@ -1,10 +1,16 @@
+{{define "upload"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>$Title$</title>
+    <title>Form Upload</title>
 </head>
 <body>
-$END$
+    <form method="post" action="/upload-process" enctype="multipart/form-data">
+        <input type="file" name="file" required/>
+        <input type="text" name="alias">
+        <button type="submit">Submit</button>
+    </form>
 </body>
 </html>
+{{end}}

@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
+	"os"
 	"path"
+	"path/filepath"
 )
 
 func main() {
@@ -12,8 +15,11 @@ func main() {
 	http.HandleFunc("/greeting", handlerGreeting)
 	http.HandleFunc("/form", handlerForm)
 	http.HandleFunc("/result", handlerResult)
+	http.HandleFunc("/upload/form", formUpload)
+	http.HandleFunc("/upload-process", uploadProcess)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("assets"))))
+	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("files"))))
 
 	var address = "localhost:8080"
 	fmt.Printf("server started at %s\n", address)
@@ -22,6 +28,67 @@ func main() {
 		fmt.Println(err.Error())
 	}
 }
+
+func uploadProcess(writer http.ResponseWriter, request *http.Request) {
+	if request.Method == "POST" {
+		file, handler, err := request.FormFile("file")
+		defer file.Close()
+
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		fileName := handler.Filename
+
+		if alias := request.Form.Get("alias"); alias != "" {
+			fileName = fmt.Sprintf("%s%s", alias, filepath.Ext(handler.Filename))
+		}
+
+		dir, err := os.Getwd()
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		fileLocation :=  filepath.Join(dir, "files", fileName)
+		targetFile, err := os.OpenFile(fileLocation, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if _, err := io.Copy(targetFile, file); err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		defer targetFile.Close()
+
+		writer.Write([]byte("done"))
+	}
+
+	http.Error(writer, "", http.StatusBadRequest)
+}
+
+func formUpload(writer http.ResponseWriter, request *http.Request) {
+	if request.Method == "GET" {
+		formUpload := path.Join("views", "form-upload.html")
+		temp := template.Must(template.New("upload").ParseFiles(formUpload))
+
+		if err := temp.Execute(writer, ""); err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		return
+	}
+
+	http.Error(writer, "", http.StatusInternalServerError)
+}
+
+
+
 func handlerResult(writer http.ResponseWriter, request *http.Request) {
 	if request.Method == "POST" {
 		var filepath = path.Join("views", "message.html")
